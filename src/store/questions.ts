@@ -1,7 +1,8 @@
 import { create } from 'zustand'
 import { type Question } from '../types'
 import confetti from 'canvas-confetti'
-import { persist } from 'zustand/middleware'
+import { persist, devtools } from 'zustand/middleware'
+import { getAllQuestions } from '../services/questions'
 
 interface State {
   questions: Question[]
@@ -13,17 +14,15 @@ interface State {
   reset: () => void
 }
 
-export const useQuestionsStore = create<State>()(persist((set, get) => {
+export const useQuestionsStore = create<State>()(devtools(persist((set, get) => {
   return {
     questions: [],
     currentQuestion: 0,
 
     fetchQuestions: async (limit: number) => {
-      const res = await fetch('http://127.0.0.1:5173/data.json')
-      const json = await res.json()
-
+      const json = await getAllQuestions()
       const questions = json.sort(() => Math.random() - 0.5).slice(0, limit)
-      set({ questions })
+      set({ questions }, false, 'FETCH_QUESTIONS')
     },
 
     // como cambia el estado de la pregunta cuando hacemos una seleccion de la respuesta
@@ -47,7 +46,7 @@ export const useQuestionsStore = create<State>()(persist((set, get) => {
       }
 
       // actualizamos el estado
-      set({ questions: newQuestions })
+      set({ questions: newQuestions }, false, 'SELECT_ANSWER')
 
       // set((state) => {
       //   const questions = state.questions.map((question) => {
@@ -69,7 +68,7 @@ export const useQuestionsStore = create<State>()(persist((set, get) => {
       const nextQuestion = currentQuestion + 1
 
       if (nextQuestion < questions.length) {
-        set({ currentQuestion: nextQuestion })
+        set({ currentQuestion: nextQuestion }, false, 'NEXT_QUESTION')
       }
     },
 
@@ -78,14 +77,14 @@ export const useQuestionsStore = create<State>()(persist((set, get) => {
       const previousQuestion = currentQuestion - 1
 
       if (previousQuestion >= 0) {
-        set({ currentQuestion: previousQuestion })
+        set({ currentQuestion: previousQuestion }, false, 'PREVIOUS_QUESTION')
       }
     },
 
     reset: () => {
-      set({ currentQuestion: 0, questions: [] })
+      set({ currentQuestion: 0, questions: [] }, false, 'RESET_GAME')
     }
   }
 }, {
   name: 'question'
-}))
+})))
